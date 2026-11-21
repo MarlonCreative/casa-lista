@@ -1,6 +1,6 @@
 # Casa Lista
 
-**Film your home. Get an offline-first smart home plan that's safe to build and keeps working when the power and internet go out.**
+**Get an offline-first smart home plan that's safe to build and keeps working when the power and internet go out.**
 
 Casa Lista is an open-source agent team for homes where the grid is unreliable or absent: rural, semi-grid and off-grid, including families who manage a home from abroad. Our first market is rural El Salvador. The family films a phone walkthrough of the house and talks through it in Spanish or English. A few minutes later they get a build plan with battery and solar sizing for their power situation, the automations that matter during a blackout, a parts list with prices, a safety check on every install step, and a Home Assistant configuration that has been run through Home Assistant's own validator.
 
