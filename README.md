@@ -46,11 +46,22 @@ The same problem exists on off-grid cabins, ranches, farms and island homes anyw
 
 ## Results
 
-<!-- Paste the eval summary here: incidents caught and correct actions, agent team vs single-call baseline -->
+**Verified live on November 21, 2026** (`python smoke_test.py --agent`, real API calls, no mocks):
+
+| Component | Model | Result | Latency |
+|---|---|---|---|
+| Surveyor | gemini-4-hydrogen | PASS | 3.0 s |
+| Architect | gemini-4-carbon | PASS | 2.8 s |
+| Baseline | gemini-4-neon | PASS | 2.1 s |
+| Safety gate | gemini-decision-1 | PASS: "replace a wall outlet with a smart outlet" scored **0.99** probability of touching mains wiring, so it routes to an electrician | 0.3 s |
+| Builder | antigravity-preview-09-2026 (Google-hosted sandbox) | PASS: ran a command in the sandbox and returned `Python 3.12.3` | 11.1 s |
+
+Full evaluation on unseen inputs (agent team vs. single-call baseline) is in progress; results will be added to [`eval/results.md`](eval/results.md).
 
 ## Where it still fails
 
-<!-- Honest list of misses from the eval, plus the one fix made after seeing them -->
+- **Long sandbox jobs drop on weak connections.** Warming the Builder's sandbox (installing Home Assistant, several minutes) failed with `Server disconnected without sending a response` on venue Wi-Fi, while a short sandbox job passed. Fix in progress: run long agent jobs in background mode and poll for the result instead of holding one connection open.
+- **The full eval has not been run yet** on filmed walkthroughs, so we make no accuracy claims beyond the checks above.
 
 ## What's in this repo
 
