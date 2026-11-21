@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Casa Lista</title>
+<style>
+  :root {
+    --bg: #f6f1e7; --card: #fffdf8; --ink: #1f2a24; --muted: #66706a; --line: #e4dccb;
+    --green: #2f7d4f; --green-bg: #e3f2e8; --red: #b3261e; --red-bg: #fbe4e1;
+    --amber: #9a5b00; --amber-bg: #fdeccc; --gray-bg: #ece9e2; --accent: #c2512b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  header { padding: 28px 20px 8px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 30px; letter-spacing: -0.5px; }
+  h1 span { color: var(--accent); }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 12px 20px 60px; display: grid; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+  .card h2 { margin: 0 0 10px; font-size: 18px; }
+  .card h3 { margin: 14px 0 6px; font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .grid2 { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } }
+  label { display: block; font-weight: 600; margin: 10px 0 4px; font-size: 14px; }
+  input[type=text], select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; background: #fff; }
+  .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 22px; text-align: center; cursor: pointer; background: #fff; }
+  .drop strong { display: block; font-size: 17px; }
+  .drop input { display: none; }
+  button.go { margin-top: 14px; width: 100%; padding: 14px; border: 0; border-radius: 12px; background: var(--accent); color: #fff; font: 600 17px/1 inherit; cursor: pointer; }
+  button.go:disabled { opacity: .5; cursor: default; }
+  video { width: 100%; max-height: 380px; border-radius: 12px; background: #000; display: none; }
+  .stages { display: flex; flex-wrap: wrap; gap: 8px; }
+  .stage { flex: 1 1 150px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; background: #fff; }
+  .stage b { display: block; }
+  .stage small { color: var(--muted); }
+  .stage.active { border-color: var(--accent); box-shadow: 0 0 0 2px #c2512b33; }
+  .stage.active b::after { content: " …"; }
+  .stage.done { background: var(--green-bg); border-color: #b8dcc4; }
+  .stage.fail { background: var(--red-bg); border-color: #f0b8b1; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .diy { background: var(--green-bg); color: var(--green); }
+  .electrician { background: var(--red-bg); color: var(--red); }
+  .other_pro { background: var(--amber-bg); color: var(--amber); }
+  .other { background: var(--gray-bg); color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .ts { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 1px 8px; font: 600 13px ui-monospace, monospace; cursor: pointer; color: var(--accent); }
+  .big { font-size: 34px; font-weight: 700; line-height: 1.1; }
+  .stats { display: flex; gap: 22px; flex-wrap: wrap; }
+  .stats div small { display: block; color: var(--muted); font-size: 13px; }
+  .verdict { padding: 14px 16px; border-radius: 12px; font-weight: 700; font-size: 18px; }
+  .verdict.pass { background: var(--green-bg); color: var(--green); }
+  .verdict.fail { background: var(--red-bg); color: var(--red); }
+  .family { font-size: 17px; background: #fff7ea; border-left: 4px solid var(--accent); padding: 12px 14px; border-radius: 8px; }
+  ul { margin: 6px 0; padding-left: 20px; }
+  pre { background: #1f2a24; color: #e8efe9; padding: 12px; border-radius: 10px; overflow: auto; font-size: 12.5px; max-height: 360px; }
+  details summary { cursor: pointer; font-weight: 600; margin: 8px 0; }
+  .muted { color: var(--muted); }
+  .err { color: var(--red); white-space: pre-wrap; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Casa <span>Lista</span></h1>
+  <p>Film your home. Get an offline-first smart home plan that's safe to build and keeps working when the grid fails or isn't there.</p>
+</header>
+
+<main>
+  <div class="grid2">
+    <section class="card">
+      <h2>1. Your walkthrough</h2>
+      <label class="drop" id="drop">
+        <strong>Record or choose a video</strong>
+        <span class="muted">Walk room to room and talk: who lives here, where power and water come from, what goes wrong when they fail.</span>
+        <input id="file" type="file" accept="video/*" capture="environment">
+      </label>
+      <label for="household">Anything we can't see? (optional)</label>
+      <input id="household" type="text" placeholder="e.g. grandmother lives alone, well pump, we manage the house from abroad">
+      <div class="grid2" style="gap:10px">
+        <div>
+          <label for="place">Where</label>
+          <input id="place" type="text" value="rural El Salvador" placeholder="e.g. rural El Salvador, a ranch in New Mexico">
+        </div>
+        <div>
+          <label for="language">Family summary in</label>
+          <select id="language"><option>Spanish</option><option>English</option><option>Portuguese</option><option>French</option></select>
+        </div>
+      </div>
+      <label for="grid">Power</label>
+      <select id="grid">
+        <option value="semi-grid: grid power that cuts out often">Grid, but it cuts out often</option>
+        <option value="off-grid: no utility grid; solar, battery or generator only">No grid (solar, battery or generator)</option>
+        <option value="grid: mostly reliable, occasional outages">Grid, mostly reliable</option>
+      </select>
+      <button class="go" id="go" disabled>Build my plan</button>
+    </section>
+
+    <section class="card">
+      <h2>2. What the agents see</h2>
+      <video id="player" controls playsinline></video>
+      <p id="noVideo" class="muted">Your video will play here. Tap a timestamp in the survey to jump to that room.</p>
+    </section>
+  </div>
+
+  <section class="card hidden" id="progressCard">
+    <h2>3. The agent team at work</h2>
+    <div class="stages" id="stages"></div>
+    <p id="error" class="err"></p>
+  </section>
+
+  <div id="results"></div>
+</main>
+
+<script>
+const STAGES = [
+  ["uploading", "Upload", "Gemini Files API", "upload_s"],
+  ["surveying", "Surveyor", "Gemini 4 Hydrogen · agentic video", "surveyor_s"],
+  ["designing", "Architect", "Gemini 4 Carbon", "architect_s"],
+  ["safety", "Safety gate", "Gemini Decision 1", "safety_s"],
+  ["building", "Builder", "Antigravity agent · check_config", "builder_s"],
+];
+const ORDER = STAGES.map(s => s[0]).concat(["done"]);
+const WHO = { diy: "DIY", electrician: "⚡ Electrician", other_pro: "Other pro", other: "Unclear" };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let file = null, timer = null;
+
+$("file").addEventListener("change", e => {
+  file = e.target.files[0];
+  if (!file) return;
+  $("player").src = URL.createObjectURL(file);
+  $("player").style.display = "block";
+  $("noVideo").style.display = "none";
+  $("drop").querySelector("strong").textContent = "✓ " + file.name;
+  $("go").disabled = false;
+});
+
+$("go").addEventListener("click", async () => {
+  $("go").disabled = true; $("go").textContent = "Uploading…";
+  $("results").innerHTML = ""; $("error").textContent = "";
+  $("progressCard").classList.remove("hidden");
+  renderStages({ stage: "uploading", timings: {} });
+  const fd = new FormData();
+  fd.append("video", file);
+  fd.append("household", $("household").value);
+  fd.append("place", $("place").value);
+  fd.append("grid", $("grid").value);
+  fd.append("language", $("language").value);
+  try {
+    const r = await fetch("/api/jobs", { method: "POST", body: fd });
+    if (!r.ok) throw new Error(await r.text());
+    const { id } = await r.json();
+    poll(id);
+  } catch (e) {
+    $("error").textContent = "Upload failed: " + e.message;
+    $("go").disabled = false; $("go").textContent = "Build my plan";
+  }
+});
+
+function poll(id) {
+  clearInterval(timer);
+  timer = setInterval(async () => {
+    const j = await (await fetch("/api/jobs/" + id)).json();
+    renderStages(j);
+    renderResults(j);
+    if (j.stage === "done" || j.stage === "error") {
+      clearInterval(timer);
+      $("go").disabled = false; $("go").textContent = "Build another plan";
+      if (j.error) $("error").textContent = j.error;
+    }
+  }, 1500);
+}
+
+function renderStages(j) {
+  const now = ORDER.indexOf(j.stage);
+  const t = j.timings || {};
+  $("stages").innerHTML = STAGES.map(([key, name, model, tk], i) => {
+    let cls = "";
+    if (j.stage === "error" && !t[tk] && (i === 0 || t[STAGES[i - 1][3]] !== undefined)) cls = "fail";
+    else if (t[tk] !== undefined) cls = "done";
+    else if (i === now) cls = "active";
+    if (key === "building" && j.build && j.build.passed === false) cls = "fail";
+    return `<div class="stage ${cls}"><b>${name}</b><small>${model}${t[tk] !== undefined ? " · " + t[tk] + "s" : ""}</small></div>`;
+  }).join("");
+}
+
+function seek(ts) {
+  const p = String(ts).split(":").map(Number);
+  const secs = p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p.length === 2 ? p[0] * 60 + p[1] : p[0];
+  if (!isNaN(secs)) { $("player").currentTime = secs; $("player").play(); $("player").scrollIntoView({ behavior: "smooth", block: "center" }); }
+}
+
+function list(items) { return items && items.length ? "<ul>" + items.map(i => `<li>${esc(i)}</li>`).join("") + "</ul>" : '<p class="muted">None</p>'; }
+
+function renderResults(j) {
+  let html = "";
+  const inv = j.inventory, d = j.design, s = j.safety, b = j.build;
+
+  if (d) {
+    const total = (d.bill_of_materials || []).reduce((a, x) => a + (x.qty || 0) * (x.est_usd || 0), 0);
+    const pp = d.power_plan || {};
+    html += `<section class="card"><h2>Your plan</h2>
+      <div class="family">${esc(d.summary_family)}</div>
+      <div class="stats" style="margin-top:14px">
+        <div><span class="big">$${Math.round(total).toLocaleString()}</span><small>estimated parts</small></div>
+        <div><span class="big">${pp.battery_wh ?? "?"} Wh</span><small>battery backup</small></div>
+        <div><span class="big">${pp.solar_w ?? "?"} W</span><small>solar</small></div>
+        <div><span class="big">${(d.devices || []).length}</span><small>devices</small></div>
+      </div>
+      <div class="grid2">
+        <div><h3>Keeps working without grid or internet</h3>${list(d.offline_behavior)}</div>
+        <div><h3>Critical loads on battery</h3>${list(pp.critical_loads)}<p class="muted">${esc(pp.rationale)}</p></div>
+      </div>
+      <h3>Hub</h3><p>${esc(d.hub)}</p>
+      <h3>Automations</h3>
+      <table><tr><th>Automation</th><th>When</th><th>Then</th></tr>
+      ${(d.automations || []).map(a => `<tr><td>${esc(a.name)}</td><td>${esc(a.trigger)}</td><td>${esc(a.action)}</td></tr>`).join("")}</table>
+      <h3>Questions for the family</h3>${list(d.questions_for_family)}
+      <details><summary>Devices and parts list</summary>
+        <table><tr><th>Device</th><th>Room</th><th>Protocol</th><th>Power</th></tr>
+        ${(d.devices || []).map(x => `<tr><td>${esc(x.name)}<br><span class="muted">${esc(x.purpose)}</span></td><td>${esc(x.room)}</td><td>${esc(x.protocol)}</td><td>${esc(x.power)}</td></tr>`).join("")}</table>
+        <table style="margin-top:10px"><tr><th>Part</th><th>Qty</th><th>Est. USD</th></tr>
+        ${(d.bill_of_materials || []).map(x => `<tr><td>${esc(x.item)}</td><td>${esc(x.qty)}</td><td>$${esc(x.est_usd)}</td></tr>`).join("")}</table>
+      </details>
+      <details><summary>Installer summary (English)</summary><p>${esc(d.summary_installer)}</p></details>
+    </section>`;
+  }
+
+  if (s && s.length) {
+    const count = k => s.filter(x => x.who === k).length;
+    html += `<section class="card"><h2>Safety gate: who does each step</h2>
+      <p class="muted">Gemini Decision 1 scored every step in one call. Low confidence near electrical work escalates to an electrician and never downgrades.</p>
+      <div class="stats" style="margin-bottom:10px">
+        <div><span class="big" style="color:var(--green)">${count("diy")}</span><small>family can do</small></div>
+        <div><span class="big" style="color:var(--red)">${count("electrician")}</span><small>licensed electrician</small></div>
+        <div><span class="big" style="color:var(--amber)">${count("other_pro")}</span><small>other trade</small></div>
+      </div>
+      <table><tr><th>#</th><th>Step</th><th>Who</th><th>Risk</th><th>Confidence</th></tr>
+      ${s.map(x => `<tr><td>${esc(x.id)}</td><td>${esc(x.step)}<br><span class="muted">${esc(x.room)}</span></td>
+        <td><span class="badge ${esc(x.who)}">${WHO[x.who] || esc(x.who)}</span></td>
+        <td>${Math.round((x.risk || 0) * 100)}%</td><td>${Math.round((x.route_confidence || 0) * 100)}%</td></tr>`).join("")}
+      </table></section>`;
+  }
+
+  if (b) {
+    const pass = b.passed === true;
+    html += `<section class="card"><h2>Home Assistant config, checked in a real sandbox</h2>
+      <div class="verdict ${pass ? "pass" : "fail"}">${pass ? "✓ Passes Home Assistant's check_config" : "✗ Did not pass check_config"}</div>
+      <div class="stats" style="margin-top:12px">
+        <div><span class="big">${b.first_pass_valid ? "Yes" : "No"}</span><small>passed on first try</small></div>
+        <div><span class="big">${b.attempts ?? "?"}</span><small>attempts</small></div>
+        <div><span class="big">${(b.errors_fixed || []).length}</span><small>errors the agent fixed</small></div>
+      </div>
+      ${(b.errors_fixed || []).length ? "<h3>Fixed by the agent</h3>" + list(b.errors_fixed) : ""}
+      ${b.error ? `<p class="err">${esc(b.error)}</p>` : ""}
+      ${b.check_output_tail ? `<details><summary>check_config output</summary><pre>${esc(b.check_output_tail)}</pre></details>` : ""}
+      ${b.configuration_yaml ? `<details><summary>configuration.yaml</summary><pre>${esc(b.configuration_yaml)}</pre></details>` : ""}
+      ${b.automations_yaml ? `<details><summary>automations.yaml</summary><pre>${esc(b.automations_yaml)}</pre></details>` : ""}
+    </section>`;
+  } else if (j.stage === "building") {
+    html += `<section class="card"><h2>Home Assistant config</h2><p class="muted">The Antigravity agent is writing the config and running check_config in its sandbox…</p></section>`;
+  }
+
+  if (inv) {
+    html += `<section class="card"><h2>What the Surveyor saw</h2>
+      <table><tr><th>When</th><th>Room</th><th>Outlets · switches · lights</th><th>Notes</th></tr>
+      ${(inv.rooms || []).map(r => `<tr><td><button class="ts" onclick="seek('${esc(r.timestamp)}')">${esc(r.timestamp)}</button></td>
+        <td>${esc(r.name)}</td><td>${esc(r.outlets_switches_lights)}</td><td>${esc(r.notes)}</td></tr>`).join("")}</table>
+      <div class="grid2">
+        <div><h3>Electrical</h3><p>${esc(inv.electrical)}</p><h3>Water</h3><p>${esc(inv.water)}</p></div>
+        <div><h3>Roof &amp; sun</h3><p>${esc(inv.roof_and_sun)}</p><h3>Connectivity</h3><p>${esc(inv.connectivity)}</p></div>
+      </div>
+      <div class="grid2">
+        <div><h3>Hazards seen</h3>${list(inv.hazards_seen)}</div>
+        <div><h3>Not sure, will ask</h3>${list(inv.uncertain)}</div>
+      </div>
+      <details><summary>Narration transcript</summary><p>${esc(inv.narration_transcript)}</p></details>
+    </section>`;
+  }
+
+  $("results").innerHTML = html;
+}
+</script>
+</body>
+</html>

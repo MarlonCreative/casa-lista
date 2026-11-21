@@ -1,44 +1,69 @@
 # Casa Lista
 
-**Get an offline-first smart home plan that's safe to build and keeps working when the power and internet go out.**
+**An AI agent team that watches over the parts of a home nobody can easily check (the cistern, the well pump, the battery bank, the fridge, the AC), then tells the owner what's wrong and what to do, even when they're far away and the internet is down.**
 
-Casa Lista is an open-source agent team for homes where the grid is unreliable or absent: rural, semi-grid and off-grid, including families who manage a home from abroad. Our first market is rural El Salvador. The family films a phone walkthrough of the house and talks through it in Spanish or English. A few minutes later they get a build plan with battery and solar sizing for their power situation, the automations that matter during a blackout, a parts list with prices, a safety check on every install step, and a Home Assistant configuration that has been run through Home Assistant's own validator.
+The most important things in a rural or off-grid home are often the hardest to look at. The water level is inside a closed cistern. The pump is out by the well. The battery bank sits in a shed. The fridge holds medicine, and the AC unit keeps an elderly parent safe in the heat. When the owner lives in another city or another country, they find out something failed days later, usually from a phone call.
 
-Open source so anyone can build it themselves, plus a paid install service for everyone who can't.
+Casa Lista connects cheap sensors on that infrastructure to a team of Gemini agents. The agents read the sensor streams together with local weather and grid conditions, work out what is actually happening, decide how serious it is, and alert the owner in their own language with a specific next step. Anything that changes the house, like shutting a valve or shedding a load, is proposed by an agent and runs only after the owner approves it.
+
+Open source so anyone can build it themselves, plus a paid install service for everyone who can't. Our first market is rural El Salvador.
 
 Built solo by Marlon Fuentes at the Build with Gemini 4 NYC Hackathon (November 21, 2026). All code in this repo was written during the event.
 
-## Why: rural El Salvador as the first market
+## What it watches
 
-- **The grid reaches almost everyone, but it doesn't stay on.** About 98% of Salvadorans have electricity access ([World Bank, 2023](https://statisticsoftheworld.com/country/el-salvador/electricity-access)), so the problem is reliability, not access. Distributors publish scheduled cuts that run [seven to nine hours](https://www.elsalvador.com/?p=1287153), warn that [water pumps in the affected areas can go down too](https://www.elsalvador.com/?p=1295175), and a [regional failure on August 1, 2026](https://www.ejecentral.com.mx/tres-paises-de-centroamerica-regitran-apagon) blacked out parts of four Central American countries.
-- **The internet mostly isn't there.** Only about [13% of people in rural areas have internet access, vs. 51% in cities](https://diario.elmundo.sv/economia/el-95-de-los-salvadorenos-porta-celulares-pero-solo-36-tiene-internet) (EHPM 2023). An IDB study puts [rural households with an internet connection at 4.1%](https://www.iadb.org/es/blog/modernizacion-del-estado/administracion-publica/la-conectividad-digital-social-la-nueva-infraestructura-del-bienestar-en-el-salvador).
-
-So a smart home there has to run locally, ride through outages on a battery, and never depend on the cloud. The same holds for off-grid cabins, ranches, farms and island homes anywhere, so nothing in Casa Lista is specific to one country: the family picks their power situation (semi-grid, off-grid, or mostly reliable grid) and the agents design for it.
-
-## How it works: four Gemini pieces, four jobs
-
-| Step | Model | Job |
+| Where | Sensor | What the agents catch |
 |---|---|---|
-| 1. Surveyor | **Gemini 4 Hydrogen**, agentic video | Scrubs the walkthrough video and narration, then writes a structured inventory with timestamps: rooms, outlets, panel, water pump, roof and sun, connectivity, who lives there, hazards, and what it couldn't see clearly. |
-| 2. Architect | **Gemini 4 Carbon** | Designs an offline-first system for the home's power situation: a local Home Assistant hub, Zigbee/Thread sensors, LoRa for wells and outbuildings, battery Wh and solar W for the critical loads, blackout behavior, automations, one-action install steps, a parts list in USD, and a summary for the family in their language. |
-| 3. Safety gate | **Gemini Decision 1** | One Decisions API call scores every install step: DIY, licensed electrician, other trade, or unclear, plus a risk score. Low confidence near electrical work escalates and never downgrades. |
-| 4. Builder | **Antigravity Managed Agent** (Gemini 4 Neon) | Writes the Home Assistant config in a Google-hosted sandbox, runs `hass --script check_config`, and fixes errors until it passes. |
+| Cistern / water tank | Level sensor | Tank running low before a delivery, a leak draining it overnight |
+| Well pump | Power monitor | Pump running dry, which burns it out, or short-cycling |
+| Battery bank and solar | Voltage, current, state of charge | Battery won't last the outage, solar underperforming, inverter overheating |
+| Fridge / freezer | Power plug + temperature | Fridge off after a power cut, food or medicine warming up |
+| AC unit | Power plug + room temperature | AC failed during a heat wave with someone vulnerable at home |
+| Weather and surroundings | Local weather station, smoke/heat sensor | Storm or wildfire smoke approaching, plus heat that raises the stakes of an AC failure |
+| Grid and internet | Grid voltage, router status | Outage started, how long it has lasted, whether the house can still phone home |
 
-In the web app, every room in the survey has a timestamp. Tap it and the video jumps to the moment the Surveyor saw that room.
+## How it works: a team of agents, each with one job
+
+1. **Monitor (Gemini 4 Neon)** reads the recent sensor history, weather, and any voice note from the family ("the water smells strange"), then writes an incident report: what happened, the likely cause, and the evidence timestamps.
+2. **Triage (Gemini Decision 1)** scores the incident in one Decisions API call and picks an action: *ignore, alert the family, send a technician,* or *emergency*. It returns a confidence score, and when confidence is low it escalates one level and never downgrades.
+3. **Alert (Gemini 3.8 Flash TTS)** speaks a short alert in Spanish (or the family's language) with the fix, plus written text, so relatives who prefer voice to reading get it too.
+4. **Approve before act.** Suggested actions like "shut the main valve" or "shed non-essential loads" wait for the owner's tap.
+
+**Setup, done once per home:**
+
+- **Surveyor (Gemini 4 Hydrogen, agentic video)** watches a phone walkthrough of the property and maps where the tank, pump, battery, panel, router and key appliances are, so every sensor has a place and the Monitor knows the layout.
+- **Architect (Gemini 4 Carbon)** designs the sensor and hub setup for that home's power situation: semi-grid, off-grid, or mostly reliable grid. Everything runs locally on a Home Assistant hub, so monitoring continues with no internet.
+- **Safety gate (Gemini Decision 1)** labels every install step *DIY* or *licensed electrician*. Anything touching mains wiring goes to a professional.
+- **Builder (Antigravity Managed Agent, Gemini 4 Neon)** writes the hub's Home Assistant configuration in a Google-hosted sandbox, runs Home Assistant's own `check_config`, and fixes it until it passes.
+
+## Why rural El Salvador first
+
+- **The grid reaches almost everyone, but it doesn't stay on.** About 98% of Salvadorans have electricity access ([World Bank, 2023](https://statisticsoftheworld.com/country/el-salvador/electricity-access)), so the problem is reliability. Distributors publish scheduled cuts that run [seven to nine hours](https://www.elsalvador.com/?p=1287153) and warn that [water pumps in affected areas can go down too](https://www.elsalvador.com/?p=1295175). A [regional failure on August 1, 2026](https://www.ejecentral.com.mx/tres-paises-de-centroamerica-regitran-apagon) blacked out parts of four Central American countries.
+- **The internet mostly isn't there.** Only about [13% of people in rural areas have internet access, vs. 51% in cities](https://diario.elmundo.sv/economia/el-95-de-los-salvadorenos-porta-celulares-pero-solo-36-tiene-internet) (EHPM 2023), and an IDB study puts [rural households with a connection at 4.1%](https://www.iadb.org/es/blog/modernizacion-del-estado/administracion-publica/la-conectividad-digital-social-la-nueva-infraestructura-del-bienestar-en-el-salvador).
+- **Many owners are far away.** Families manage these homes from San Salvador, the US, or elsewhere, and need to know about a failure the day it happens.
+
+The same problem exists on off-grid cabins, ranches, farms and island homes anywhere, so nothing in Casa Lista is tied to one country.
 
 ## Results
 
-Evaluated on walkthroughs filmed at the venue on the day, never seen before, against a **single Gemini 4 Neon call** baseline (video in, plan plus steps marked by who should do them plus Home Assistant YAML out).
-
-See [`eval/results.md`](eval/results.md) for the full table and per-video results.
-
-<!-- RESULTS_SUMMARY: paste the Summary table from eval/results.md here -->
+<!-- Paste the eval summary here: incidents caught and correct actions, agent team vs single-call baseline -->
 
 ## Where it still fails
 
-<!-- From eval/results.md "Where it still fails", plus the one fix made after seeing it -->
+<!-- Honest list of misses from the eval, plus the one fix made after seeing them -->
 
-## Run it
+## What's in this repo
+
+- `pipeline.py`: Surveyor, Architect and Safety gate for setup, plus a single-call baseline for comparison
+- `validator.py`: the Antigravity Builder (warm the sandbox, build and validate a config, check-only for the baseline)
+- `app.py` and `static/index.html`: a local web app for the setup flow
+- `eval.py`: agent team vs. single-call baseline on unseen inputs
+- `smoke_test.py`: checks your API key and that every model answers
+
+The monitoring prototype (Monitor, Triage and Alert over simulated sensor feeds) was built in Google AI Studio Build during the event.
+<!-- Add the exported AI Studio code to this repo, e.g. in /monitor -->
+
+## Run the setup flow locally
 
 You need Python 3.11+ and a Gemini API key from [Google AI Studio](https://aistudio.google.com/api-keys).
 
@@ -52,21 +77,12 @@ python validator.py --warm    # installs Home Assistant in the sandbox once
 uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
-Open http://localhost:8000 on your computer, or `http://<your-computer's-IP>:8000` on a phone on the same Wi-Fi to record a walkthrough directly.
+## Safety and privacy
 
-To run the evaluation, put walkthrough videos in `eval/videos/` and run `python eval.py`. Check the mains-power labels in `eval/labels.csv`, then run `python eval.py --rescore`.
-
-## Files
-
-- `pipeline.py`: Surveyor, Architect, Safety gate, and the single-call baseline
-- `validator.py`: Antigravity builder (warm, build and validate, check-only for the baseline)
-- `app.py` and `static/index.html`: the web app
-- `eval.py`: Casa Lista vs. baseline on unseen videos
-- `smoke_test.py`: checks your key and every model
-
-## Safety notes
-
-Casa Lista never tells a family to do mains electrical work themselves. Anything that touches 120/240 V wiring, outlets, switches, breakers, the panel, inverter AC wiring or the meter is routed to a licensed electrician. When the safety gate is unsure, it escalates. The plan is guidance for a family and an installer, not a substitute for a licensed professional on site.
+- Casa Lista never tells a family to do mains electrical work themselves. When the safety gate is unsure, it escalates.
+- Agents propose actions on the house; a person approves them.
+- Sensor data stays on the local hub. No cameras in bedrooms or bathrooms.
+- Alerts are guidance, not a substitute for emergency services or a licensed professional on site.
 
 ## License
 
